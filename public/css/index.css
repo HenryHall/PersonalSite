@@ -1,0 +1,35 @@
+
+@font-face {
+  font-family: 'Henry';
+  src: url('../assets/henry.ttf')  format('truetype');
+}
+
+body {
+  box-shadow: inset 200px 200px 200px #eeeeee;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+#card {
+  background-color: #8080800f;
+  position: relative;
+  margin: auto;
+  top: 25vh;
+  height: 275px;
+  width: 500px;
+  border: 1px solid rgb(209, 209, 209);
+  box-shadow: -5px -5px 15px #ececec;
+  text-align: center;
+
+  /* transform: scaleY(0); */
+  transition: 1.25s;
+}
+
+#name {
+  color: #888888;
+  margin-top: 25%;
+  height: 50%;
+  font-family: 'Henry';
+  font-size: 5em;
+}
