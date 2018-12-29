@@ -4,7 +4,7 @@ var scene = new THREE.Scene();
 var sCanvas = document.getElementById("myCanvas");
 sCanvas.height = window.innerHeight;
 sCanvas.width = window.innerWidth;
-var camera = new THREE.PerspectiveCamera( 40, sCanvas.width / sCanvas.height, 0.1, 1000 );
+var camera = new THREE.PerspectiveCamera( 30, sCanvas.width / sCanvas.height, 0.1, 1000 );
 var renderer = new THREE.WebGLRenderer({ canvas: sCanvas, antialias: true });
 
 var raycaster = new THREE.Raycaster();
@@ -93,20 +93,20 @@ function BusinessCard(){
 
 
   this.init = () => {
-    this.frontFace.update();
-    this.backFace.update();
-    // this.object.rotation.y -= Math.PI;
+    this.frontFace.init();
+    this.backFace.init();
+    // this.object.rotation.y -= Math.PI;  //Debug
   }
 
 
   this.update = () => {
-    this.object.rotation.y -= .005;
+    this.object.rotation.y -= .005;  //Debug
   };//End update
 
 
   this.interact = ( intersect, e ) => {
-    var x = intersect.uv.x * this.backFace.canvas.width;
-    var y = intersect.uv.y * this.backFace.canvas.height;
+    var x = intersect.uv.x * this.backFace.canvas.getWidth();
+    var y = intersect.uv.y * this.backFace.canvas.getHeight();
     var objFace = intersect.faceIndex;
     if( [8, 9].indexOf(objFace) != -1 ){
       //Front Face
@@ -128,28 +128,50 @@ function BusinessCard(){
 
 
   function FrontFace(){
+    var texturePath = '../assets/papertexture.jpg';
+
     this.type = 'BusinessCardFace';
     this.canvas = document.createElement('canvas');
     this.context = this.canvas.getContext('2d');
-    this.canvas.height = 256;
-    this.canvas.width = 512;
 
+    //For Retina displays
+    var dpi  = window.devicePixelRatio || 1;
+    this.canvas.style.height = 256 + 'px';
+    this.canvas.style.width = 512 + 'px';
+    this.canvas.height = 256 * dpi;
+    this.canvas.width = 512 * dpi;
+    this.context.scale(dpi, dpi);
+
+    this.canvas.getHeight = () => { return this.canvas.style.height.slice(0, -2); }
+    this.canvas.getWidth = () => { return this.canvas.style.width.slice(0, -2); }
+
+
+    this.pattern = null;
     this.texture = new THREE.CanvasTexture( this.canvas );
     this.texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
+    this.init = () => {
+      var textureImg = new ImagePromise(texturePath);
+      textureImg.then( (img) => {
+        this.pattern = this.context.createPattern(img, 'repeat'); // Create a pattern with this image, and set it to "repeat".
+        this.update();
+      });
+    }
+
+
     this.update = () => {
-      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.context.clearRect(0, 0, this.canvas.getWidth(), this.canvas.getHeight());
 
       //Card Texture
-      this.context.fillStyle = '#eeeeee';
-      this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.context.fillStyle = this.pattern;
+      this.context.fillRect(0, 0, this.canvas.getWidth(), this.canvas.getHeight());
 
       //Card Text
       this.context.font = '10em serif';
       this.context.textAlign = 'center';
       this.context.textBaseline = 'middle';
       this.context.fillStyle = "black";
-      this.context.fillText("Henry Hall", this.canvas.width / 2, this.canvas.height / 2);
+      this.context.fillText("Henry Hall", this.canvas.getWidth() / 2, this.canvas.getHeight() / 2 );
 
       this.texture.needsUpdate = true;
     }//End Update
@@ -157,11 +179,24 @@ function BusinessCard(){
 
 
   function BackFace(){
+    var texturePath = '../assets/papertexture.jpg';
+
     this.type = 'BusinessCardFace';
     this.canvas = document.createElement('canvas');
     this.context = this.canvas.getContext('2d');
     this.canvas.height = 256;
     this.canvas.width = 512;
+
+    //For Retina displays
+    var dpi  = window.devicePixelRatio || 1;
+    this.canvas.style.height = 256 + 'px';
+    this.canvas.style.width = 512 + 'px';
+    this.canvas.height = 256 * dpi;
+    this.canvas.width = 512 * dpi;
+    this.context.scale(dpi, dpi);
+
+    this.canvas.getHeight = () => { return this.canvas.style.height.slice(0, -2); }
+    this.canvas.getWidth = () => { return this.canvas.style.width.slice(0, -2); }
 
     this.texture = new THREE.CanvasTexture( this.canvas );
     this.texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -172,12 +207,33 @@ function BusinessCard(){
       new CardButton('../assets/codepen.png', 'https://codepen.io/HenryPrime/')
     ];
 
+    this.init = () => {
+      //Prepare canvas images
+      var promises = [];
+      var textureImg = new ImagePromise(texturePath);
+      textureImg.then( (img) => {
+        this.pattern = this.context.createPattern(img, 'repeat'); // Create a pattern with this image, and set it to "repeat".
+      });
+
+      promises.push( textureImg );
+      this.buttons.forEach( (btn) => {
+        let p = new ImagePromise( btn.src );
+        btn.img = p.then( (img) => {btn.img = img} );
+        promises.push( p );
+      });
+
+      Promise.all( promises ).then( (values) => {
+        this.update();
+      });
+    }//End init
+
     this.update = () => {
-      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.context.clearRect(0, 0, this.canvas.getWidth(), this.canvas.getHeight());
 
       //Texture
-      this.context.fillStyle = '#eeeeee';
-      this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.context.fillStyle = this.pattern;
+      this.context.fillRect(0, 0, this.canvas.getWidth(), this.canvas.getHeight());
+
 
       //Text
       // this.context.font = '50px serif';
@@ -187,16 +243,16 @@ function BusinessCard(){
 
       //Button Init
       var logoSquare, shift, dx, dy;
-      var isWider = this.canvas.width > this.canvas.height ? true : false;
+      var isWider = this.canvas.getWidth() > this.canvas.getHeight() ? true : false;
       if( isWider ){
-        logoSquare = this.canvas.width * ( 1 / ( this.buttons.length + 1 ) );
+        logoSquare = this.canvas.getWidth() * ( 1 / ( this.buttons.length + 1 ) );
         shift = logoSquare * ( 1 / ( this.buttons.length + 1 ) );
         dx = shift;
-        dy = (this.canvas.height / 2) - (logoSquare / 2);
+        dy = (this.canvas.getHeight() / 2) - (logoSquare / 2);
       } else {
-        logoSquare = this.canvas.height * ( 1 / ( this.buttons.length + 1 ) );
+        logoSquare = this.canvas.getHeight() * ( 1 / ( this.buttons.length + 1 ) );
         shift = logoSquare * ( 1 / ( this.buttons.length + 1 ) );
-        dx = (this.canvas.width / 2) -  (logoSquare / 2);
+        dx = (this.canvas.getWidth() / 2) -  (logoSquare / 2);
         dy = shift;
       }
 
@@ -204,6 +260,7 @@ function BusinessCard(){
         btn.x = dx;
         btn.y = dy;
         btn.radius = logoSquare / 2;
+        this.context.globalAlpha = 0.80;
 
         //Draw based on mouse.isDown
         if( btn.isMouseDown && mouse.isDown ){
@@ -215,6 +272,7 @@ function BusinessCard(){
           btn.isMouseDown = false;
           this.context.drawImage( btn.img, dx, dy, logoSquare, logoSquare );
         }
+        this.context.globalAlpha = 1;
 
         //Draw hover animation
         //If Yes
@@ -231,6 +289,7 @@ function BusinessCard(){
       this.texture.needsUpdate = true;
     }//End update
 
+
     function CardButton(src, url){
       this.type = 'BusinessCardFaceButton';
       this.x = null;
@@ -238,9 +297,9 @@ function BusinessCard(){
       this.radius = null;
       this.isMouseDown = false;
 
-      this.img = new Image();
-      this.img.src = src;
+      this.src = src;
       this.url = url;
+      this.img = null;
 
       this.checkIntersection = ( x, y ) => {
         //Check if this button is being intersected by the mouse
@@ -276,16 +335,27 @@ function BusinessCard(){
           }
         } catch (err) {
           console.log(err);
-          throw new Error("Event object was not present.");
+          throw new Error( "Event object was not present." );
         }
       }//End interact
     }//End CardButton
   }//End BackFaceCanvas
 
+
+  function ImagePromise( path ){
+    return new Promise( ( resolve, reject ) => {
+      let img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject( new Error( 'Failed to load image: ', path ) );
+      img.src = path;
+    });
+  }
+
+
   //Debug
   this.drawMouse = ( faceContext, x, y ) => {
     var mx = x;
-    var my = faceContext.canvas.height - y;
+    var my = faceContext.canvas.getHeight() - y;
 
     faceContext.beginPath();
     faceContext.arc(mx, my, 3, 0, 2 * Math.PI);
