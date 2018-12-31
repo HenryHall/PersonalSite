@@ -1,18 +1,29 @@
 
-
 var scene = new THREE.Scene();
 var sCanvas = document.getElementById("myCanvas");
 sCanvas.height = window.innerHeight;
 sCanvas.width = window.innerWidth;
-var camera = new THREE.PerspectiveCamera( 30, sCanvas.width / sCanvas.height, 0.1, 1000 );
-var renderer = new THREE.WebGLRenderer({ canvas: sCanvas, antialias: true });
 
+var camera = new THREE.PerspectiveCamera( 50, sCanvas.width / sCanvas.height, 0.1, 1000 );
+var renderer = new THREE.WebGLRenderer({ canvas: sCanvas, antialias: true });
+var controls = new THREE.OrbitControls( camera );
 var raycaster = new THREE.Raycaster();
 
 var mouse = new Mouse();
-
 var card = new BusinessCard();
 
+//Placeholder
+var geometry = new THREE.PlaneBufferGeometry( 5, 20, 32 );
+var moonTexture = new THREE.TextureLoader().load( "../assets/moonbackground.png" );
+moonTexture.wrapS = THREE.RepeatWrapping;
+moonTexture.wrapT = THREE.RepeatWrapping;
+moonTexture.repeat.set( 4, 4 );
+var moonMaterial = new THREE.MeshBasicMaterial( { map: moonTexture } );
+var moonMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 200, 200 ), moonMaterial );
+moonMesh.position.y = -5;
+moonMesh.rotation.x = - Math.PI / 2;
+moonMesh.receiveShadow = true;
+scene.add( moonMesh );
 
 window.addEventListener( 'resize', onWindowResize );
 sCanvas.addEventListener ( 'mouseup', mouse.triggerEvent );
@@ -64,27 +75,33 @@ function Mouse(){
     //Check for button interactions
     var intersect = this.firstIntersect();
 
+    //If the card is intersecting, interact and set cursor style
     if( intersect && intersect.object === card.object ){
       card.interact( intersect, e );
+      if( this.isDown ){
+        document.body.style.cursor = 'grabbing';
+      } else {
+        document.body.style.cursor = 'grab';
+      }
+    } else {
+      //Return cursor to normal
+      document.body.style.cursor = 'auto';
     }
-    // if( intersect && intersect.interact ){
-      // intersect.interact( intersect, e );
-    // }
   }
 }
 
 
 function BusinessCard(){
   this.type = 'BusinessCard';
-  this.geometry = new THREE.BoxGeometry( 8, 4, .03 );
+  this.geometry = new THREE.BoxGeometry( 8, 4, .075 );
   this.geometry.computeFaceNormals();
   this.frontFace = new FrontFace();
   this.backFace = new BackFace();
   this.materialArray = [
-    new THREE.MeshBasicMaterial({ color: 0xcccccc }),   //Left
-    new THREE.MeshBasicMaterial({ color: 0xcccccc }),   //Right
-    new THREE.MeshBasicMaterial({ color: 0xcccccc }),   //Top
-    new THREE.MeshBasicMaterial({ color: 0xcccccc }),   //Bottom
+    new THREE.MeshBasicMaterial({ color: 0xaaaaaa }),   //Left
+    new THREE.MeshBasicMaterial({ color: 0xaaaaaa }),   //Right
+    new THREE.MeshBasicMaterial({ color: 0xaaaaaa }),   //Top
+    new THREE.MeshBasicMaterial({ color: 0xaaaaaa }),   //Bottom
     new THREE.MeshBasicMaterial({ map: this.frontFace.texture }),     //Front
     new THREE.MeshBasicMaterial({ map: this.backFace.texture })     //Back
   ];
@@ -95,7 +112,7 @@ function BusinessCard(){
   this.init = () => {
     this.frontFace.init();
     this.backFace.init();
-    this.object.rotation.y -= Math.PI;  //Debug
+    // this.object.rotation.y -= Math.PI;  //Debug
   }
 
 
@@ -117,6 +134,8 @@ function BusinessCard(){
       this.backFace.buttons.forEach( (btn) => {
         if( btn.checkIntersection( x, y ) ){
           btn.update(e);
+        } else {
+          btn.isMouseHovering = false;  //Reset value
         }
       });
       this.backFace.update();
@@ -134,10 +153,10 @@ function BusinessCard(){
 
     //For Retina displays
     var dpi  = window.devicePixelRatio || 1;
-    this.canvas.style.height = 256 + 'px';
-    this.canvas.style.width = 512 + 'px';
-    this.canvas.height = 256 * dpi;
-    this.canvas.width = 512 * dpi;
+    this.canvas.style.height = 1024 + 'px';
+    this.canvas.style.width = 2048 + 'px';
+    this.canvas.height = 1024 * dpi;
+    this.canvas.width = 2048 * dpi;
     this.context.scale(dpi, dpi);
 
     this.canvas.getHeight = () => { return this.canvas.style.height.slice(0, -2); }
@@ -186,6 +205,7 @@ function BusinessCard(){
 
   function BackFace(){
     var texturePath = '../assets/papertexture.jpg';
+    // var texturePath = '../assets/moonbackground.png';
 
     CardFace.call( this);
 
@@ -236,7 +256,7 @@ function BusinessCard(){
       var logoSquare, shift, dx, dy;
       var isWider = this.canvas.getWidth() > this.canvas.getHeight() ? true : false;
       if( isWider ){
-        logoSquare = this.canvas.getWidth() * ( 1 / ( this.buttons.length + 1 ) );
+        logoSquare = this.canvas.getWidth() / ( this.buttons.length + 1 );
         shift = logoSquare * ( 1 / ( this.buttons.length + 1 ) );
         dx = shift;
         dy = (this.canvas.getHeight() / 2) - (logoSquare / 2);
@@ -253,22 +273,22 @@ function BusinessCard(){
         btn.y = dy;
         btn.radius = logoSquare / 2;
 
+        let radiusDiff = btn.radius * .05;  //Used for click and hover animation calculations
+
         //Draw hover animation
         if( btn.isMouseHovering ){
           // console.log(`Drawing hover animation for ${btn.name}`);   //Debug
 
           //Dashed outline
           let drawDash = true;
-          let radiusDiff = 5;
-          let stepRadians = Math.PI * 2 / 20;
+          let stepRadians = Math.PI * 2 / 50;
           for( let i = 0; i <= Math.PI * 2; i += stepRadians ){
-            // console.log("Arc values:", { x: btn.x, y: btn.y, radius: btn.radius, startRad: 0, currentRad: i } );
             if( drawDash ){
               this.context.globalAlpha = 0.80;
-              this.context.lineWidth = 3;
+              this.context.lineWidth = 30;
               this.context.strokeStyle = 'grey';
               this.context.beginPath();
-              this.context.arc( btn.x + btn.radius , btn.y + btn.radius, btn.radius + radiusDiff, i, i + stepRadians );
+              this.context.arc( btn.x + btn.radius, btn.y + btn.radius, btn.radius + radiusDiff, i, i + stepRadians );
               this.context.stroke();
               this.context.globalAlpha = 1;
             }
@@ -279,6 +299,7 @@ function BusinessCard(){
         } else {
           //The mouse is no longer hovering this button
           btn.isMouseHovering = false;  //Reset value
+
         }
 
 
@@ -286,8 +307,7 @@ function BusinessCard(){
         if( btn.isMouseDown && mouse.isDown ){
           //Mouse is down on this button
           this.context.globalAlpha = .8;
-          this.context.drawImage( btn.img, dx - logoSquare * .125, dy - logoSquare * .125, logoSquare * 1.25, logoSquare * 1.25 );
-
+          this.context.drawImage( btn.img, dx - radiusDiff/2, dy - radiusDiff/2, logoSquare + radiusDiff, logoSquare + radiusDiff );
         } else {
           //The mouse is no longer down on this button
           btn.isMouseDown = false;  //Reset value
