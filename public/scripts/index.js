@@ -95,12 +95,12 @@ function BusinessCard(){
   this.init = () => {
     this.frontFace.init();
     this.backFace.init();
-    // this.object.rotation.y -= Math.PI;  //Debug
+    this.object.rotation.y -= Math.PI;  //Debug
   }
 
 
   this.update = () => {
-    this.object.rotation.y -= .005;  //Debug
+    // this.object.rotation.y -= .005;  //Debug
   };//End update
 
 
@@ -127,9 +127,7 @@ function BusinessCard(){
   };//End interact
 
 
-  function FrontFace(){
-    var texturePath = '../assets/papertexture.jpg';
-
+  function CardFace(){
     this.type = 'BusinessCardFace';
     this.canvas = document.createElement('canvas');
     this.context = this.canvas.getContext('2d');
@@ -144,7 +142,13 @@ function BusinessCard(){
 
     this.canvas.getHeight = () => { return this.canvas.style.height.slice(0, -2); }
     this.canvas.getWidth = () => { return this.canvas.style.width.slice(0, -2); }
+  }
 
+
+  function FrontFace(){
+    var texturePath = '../assets/papertexture.jpg';
+
+    CardFace.call( this);
 
     this.pattern = null;
     this.texture = new THREE.CanvasTexture( this.canvas );
@@ -171,7 +175,9 @@ function BusinessCard(){
       this.context.textAlign = 'center';
       this.context.textBaseline = 'middle';
       this.context.fillStyle = "black";
+      this.context.globalAlpha = 0.80;
       this.context.fillText("Henry Hall", this.canvas.getWidth() / 2, this.canvas.getHeight() / 2 );
+      this.context.globalAlpha = 1;
 
       this.texture.needsUpdate = true;
     }//End Update
@@ -181,30 +187,15 @@ function BusinessCard(){
   function BackFace(){
     var texturePath = '../assets/papertexture.jpg';
 
-    this.type = 'BusinessCardFace';
-    this.canvas = document.createElement('canvas');
-    this.context = this.canvas.getContext('2d');
-    this.canvas.height = 256;
-    this.canvas.width = 512;
-
-    //For Retina displays
-    var dpi  = window.devicePixelRatio || 1;
-    this.canvas.style.height = 256 + 'px';
-    this.canvas.style.width = 512 + 'px';
-    this.canvas.height = 256 * dpi;
-    this.canvas.width = 512 * dpi;
-    this.context.scale(dpi, dpi);
-
-    this.canvas.getHeight = () => { return this.canvas.style.height.slice(0, -2); }
-    this.canvas.getWidth = () => { return this.canvas.style.width.slice(0, -2); }
+    CardFace.call( this);
 
     this.texture = new THREE.CanvasTexture( this.canvas );
     this.texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     this.buttons = [
-      new CardButton('../assets/github.svg', 'https://github.com/HenryHall'),
-      new CardButton('../assets/linkedin.png', 'https://www.linkedin.com/in/henry-hall-ba2168122/'),
-      new CardButton('../assets/codepen.png', 'https://codepen.io/HenryPrime/')
+      new CardButton( 'GitHub', '../assets/github.svg', 'https://github.com/HenryHall' ),
+      new CardButton( 'LinkedIn', '../assets/linkedin.png', 'https://www.linkedin.com/in/henry-hall-ba2168122/' ),
+      new CardButton( 'CodePen', '../assets/codepen.png', 'https://codepen.io/HenryPrime/' )
     ];
 
     this.init = () => {
@@ -241,7 +232,7 @@ function BusinessCard(){
       // this.context.fillStyle = "black";
       // this.context.fillText("Back Side", this.canvas.width / 2, this.canvas.height / 2);
 
-      //Button Init
+      //Button Layout Calculations
       var logoSquare, shift, dx, dy;
       var isWider = this.canvas.getWidth() > this.canvas.getHeight() ? true : false;
       if( isWider ){
@@ -256,26 +247,55 @@ function BusinessCard(){
         dy = shift;
       }
 
+      //Update each button
       this.buttons.forEach( (btn) => {
         btn.x = dx;
         btn.y = dy;
         btn.radius = logoSquare / 2;
-        this.context.globalAlpha = 0.80;
 
-        //Draw based on mouse.isDown
+        //Draw hover animation
+        if( btn.isMouseHovering ){
+          // console.log(`Drawing hover animation for ${btn.name}`);   //Debug
+
+          //Dashed outline
+          let drawDash = true;
+          let radiusDiff = 5;
+          let stepRadians = Math.PI * 2 / 20;
+          for( let i = 0; i <= Math.PI * 2; i += stepRadians ){
+            // console.log("Arc values:", { x: btn.x, y: btn.y, radius: btn.radius, startRad: 0, currentRad: i } );
+            if( drawDash ){
+              this.context.globalAlpha = 0.80;
+              this.context.lineWidth = 3;
+              this.context.strokeStyle = 'grey';
+              this.context.beginPath();
+              this.context.arc( btn.x + btn.radius , btn.y + btn.radius, btn.radius + radiusDiff, i, i + stepRadians );
+              this.context.stroke();
+              this.context.globalAlpha = 1;
+            }
+
+            drawDash = !drawDash;
+          }
+
+        } else {
+          //The mouse is no longer hovering this button
+          btn.isMouseHovering = false;  //Reset value
+        }
+
+
+        //Draw animation based on clicking status
         if( btn.isMouseDown && mouse.isDown ){
           //Mouse is down on this button
+          this.context.globalAlpha = .8;
           this.context.drawImage( btn.img, dx - logoSquare * .125, dy - logoSquare * .125, logoSquare * 1.25, logoSquare * 1.25 );
 
         } else {
-          //Mouse is not down on this button
-          btn.isMouseDown = false;
+          //The mouse is no longer down on this button
+          btn.isMouseDown = false;  //Reset value
+          this.context.globalAlpha = .8;
           this.context.drawImage( btn.img, dx, dy, logoSquare, logoSquare );
         }
         this.context.globalAlpha = 1;
 
-        //Draw hover animation
-        //If Yes
 
         //Update next button positions
         if( isWider ){
@@ -290,7 +310,8 @@ function BusinessCard(){
     }//End update
 
 
-    function CardButton(src, url){
+    function CardButton(name, src, url){
+      this.name = name;
       this.type = 'BusinessCardFaceButton';
       this.x = null;
       this.y = null;
@@ -317,10 +338,13 @@ function BusinessCard(){
         }
       };
 
-      this.update = ( e ) => {
-        this.isMouseHover = true;
+      this.update = ( event ) => {
+        //The mouse is over this button
+
+        this.isMouseHovering = true;
+        console.log(`${this.name} is being hovered`);   //Debug
         try {
-          switch (e.type) {
+          switch (event.type) {
             case 'mouseup':
               console.log("Clicked: ", this.url);
               //open url
