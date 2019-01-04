@@ -4,7 +4,7 @@ var sCanvas = document.getElementById("myCanvas");
 sCanvas.height = window.innerHeight;
 sCanvas.width = window.innerWidth;
 
-var camera = new THREE.PerspectiveCamera( 50, sCanvas.width / sCanvas.height, 0.1, 1000 );
+var camera = new THREE.PerspectiveCamera( 50, sCanvas.width / sCanvas.height, 1, 1000 );
 var renderer = new THREE.WebGLRenderer({ canvas: sCanvas, antialias: true });
 var controls = new THREE.OrbitControls( camera );
 var raycaster = new THREE.Raycaster();
@@ -12,18 +12,29 @@ var raycaster = new THREE.Raycaster();
 var mouse = new Mouse();
 var card = new BusinessCard();
 
-//Placeholder
-var geometry = new THREE.PlaneBufferGeometry( 5, 20, 32 );
+// //Placeholder
+// var moonTexture = new THREE.TextureLoader().load( "../assets/moonbackground.png" );
+// moonTexture.wrapS = THREE.RepeatWrapping;
+// moonTexture.wrapT = THREE.RepeatWrapping;
+// moonTexture.repeat.set( 4, 4 );
+// var moonMaterial = new THREE.MeshBasicMaterial( { map: moonTexture } );
+// var moonMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 200, 200 ), moonMaterial );
+// moonMesh.position.y = -5;
+// moonMesh.rotation.x = - Math.PI / 2;
+// moonMesh.receiveShadow = true;
+// scene.add( moonMesh );
+
+//Placeholder 2
+var moonGeometry = new THREE.SphereBufferGeometry( 300, 300, 300 );
 var moonTexture = new THREE.TextureLoader().load( "../assets/moonbackground.png" );
-moonTexture.wrapS = THREE.RepeatWrapping;
-moonTexture.wrapT = THREE.RepeatWrapping;
-moonTexture.repeat.set( 4, 4 );
-var moonMaterial = new THREE.MeshBasicMaterial( { map: moonTexture } );
-var moonMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 200, 200 ), moonMaterial );
-moonMesh.position.y = -5;
-moonMesh.rotation.x = - Math.PI / 2;
-moonMesh.receiveShadow = true;
-scene.add( moonMesh );
+// moonTexture.wrapS = THREE.RepeatWrapping;
+// moonTexture.wrapT = THREE.RepeatWrapping;
+// moonTexture.repeat.set( 5, 5 );
+var moonMaterial = new THREE.MeshBasicMaterial( { map: moonTexture, side: THREE.DoubleSide } );
+var moonSphere = new THREE.Mesh( moonGeometry, moonMaterial );
+moonSphere.position.y = -350;
+moonSphere.rotation.z += Math.PI / 2;
+scene.add( moonSphere );
 
 window.addEventListener( 'resize', onWindowResize );
 sCanvas.addEventListener ( 'mouseup', mouse.triggerEvent );
@@ -93,7 +104,7 @@ function Mouse(){
 
 function BusinessCard(){
   this.type = 'BusinessCard';
-  this.geometry = new THREE.BoxGeometry( 8, 4, .075 );
+  this.geometry = new THREE.BoxGeometry( 80, 40, .075 );
   this.geometry.computeFaceNormals();
   this.frontFace = new FrontFace();
   this.backFace = new BackFace();
@@ -110,8 +121,20 @@ function BusinessCard(){
 
 
   this.init = () => {
-    this.frontFace.init();
-    this.backFace.init();
+
+    //Load Fonts
+    var fPromise1 = document.fonts.load('12px Righteous');
+    var fPromise2 = document.fonts.load('12px Roboto');
+
+    //Once loads are done, draw the card faces
+    Promise.all( [fPromise1, fPromise2] ).then( () => {
+      this.frontFace.init();
+      this.backFace.init();
+    },
+    (e) => {
+      throw new Error("Not all fonts were loaded.");
+    });
+
     // this.object.rotation.y -= Math.PI;  //Debug
   }
 
@@ -146,6 +169,7 @@ function BusinessCard(){
   };//End interact
 
 
+  //CardFace Prototype
   function CardFace(){
     this.type = 'BusinessCardFace';
     this.canvas = document.createElement('canvas');
@@ -169,6 +193,7 @@ function BusinessCard(){
 
     CardFace.call( this);
 
+    this.font = null;
     this.pattern = null;
     this.texture = new THREE.CanvasTexture( this.canvas );
     this.texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -190,14 +215,36 @@ function BusinessCard(){
       this.context.fillRect(0, 0, this.canvas.getWidth(), this.canvas.getHeight());
 
       //Card Text
-      this.context.font = '10em serif';
+      var cardText = "HENRY HALL";
+      var fontName = 'Righteous';
+      var fontSize = this.canvas.height / 3;
+
+      //To fit, fontSize calculations
+      this.context.font = `${fontSize}px ${fontName}`;
+      while( this.context.measureText(cardText).width > this.canvas.getWidth() * .6 ){
+        fontSize -= 5;
+        this.context.font = `${fontSize}px ${fontName}`;
+      }
+
       this.context.textAlign = 'center';
-      this.context.textBaseline = 'middle';
+      // this.context.textBaseline = 'middle';
       this.context.fillStyle = "black";
       this.context.globalAlpha = 0.80;
-      this.context.fillText("Henry Hall", this.canvas.getWidth() / 2, this.canvas.getHeight() / 2 );
-      this.context.globalAlpha = 1;
+      this.context.fillText(cardText, this.canvas.getWidth() / 2, this.canvas.getHeight() / 2 );
 
+      //Subtext
+      var subText = 'Software Developer';
+      var subFontName = 'Roboto'
+      var subFontSize = fontSize * .5;
+
+      this.context.font = `${subFontSize}px ${subFontName}`;
+      while( this.context.measureText(subText).width > this.canvas.getWidth() * .8 ){
+        subFontSize -= 5;
+        this.context.font = `${subFontSize}px ${subFontName}`;
+      }
+      this.context.fillText(subText, this.canvas.getWidth() / 2, ( this.canvas.getHeight() / 2 + fontSize ) );
+
+      this.context.globalAlpha = 1;
       this.texture.needsUpdate = true;
     }//End Update
   }//End FrontFaceCanvas
@@ -281,11 +328,11 @@ function BusinessCard(){
 
           //Dashed outline
           let drawDash = true;
-          let stepRadians = Math.PI * 2 / 50;
+          let stepRadians = Math.PI * 2 / 50;   //50 Dashes per button
           for( let i = 0; i <= Math.PI * 2; i += stepRadians ){
             if( drawDash ){
               this.context.globalAlpha = 0.80;
-              this.context.lineWidth = 30;
+              this.context.lineWidth = 15;
               this.context.strokeStyle = 'grey';
               this.context.beginPath();
               this.context.arc( btn.x + btn.radius, btn.y + btn.radius, btn.radius + radiusDiff, i, i + stepRadians );
@@ -362,16 +409,17 @@ function BusinessCard(){
         //The mouse is over this button
 
         this.isMouseHovering = true;
-        console.log(`${this.name} is being hovered`);   //Debug
+        // console.log(`${this.name} is being hovered`);   //Debug
         try {
           switch (event.type) {
             case 'mouseup':
-              console.log("Clicked: ", this.url);
-              //open url
               break;
 
             case 'mousedown':
               this.isMouseDown = true;
+              console.log("Clicked: ", this.url);
+              //open url
+              window.open(this.url);
               break;
 
             default:

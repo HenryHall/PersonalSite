@@ -1,4 +1,14 @@
 
+@font-face {
+  font-family: "Righteous";
+  src: url('../assets/Righteous.ttf') format("truetype");
+}
+
+@font-face {
+  font-family: "Roboto";
+  src: url('../assets/Roboto.ttf') format("truetype");
+}
+
 body {
   box-shadow: inset 200px 200px 200px #eeeeee;
   height: 100vh;
