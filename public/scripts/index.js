@@ -5,6 +5,7 @@ sCanvas.height = window.innerHeight;
 sCanvas.width = window.innerWidth;
 
 var camera = new THREE.PerspectiveCamera( 50, sCanvas.width / sCanvas.height, 1, 1000 );
+
 var renderer = new THREE.WebGLRenderer({ canvas: sCanvas, antialias: true });
 var controls = new THREE.OrbitControls( camera );
 var raycaster = new THREE.Raycaster();
@@ -466,6 +467,8 @@ camera.position.z = 10;
 
 
 function init(){
+  camera.position.z = 150;
+  camera.updateProjectionMatrix();
   card.init();
 }
 
@@ -491,11 +494,11 @@ animate();
 
 //ANGULAR
 
-var myApp = angular.module('myApp', []);
-
-
-myApp.controller('mainController', ['$scope', function($scope){
-
-
-
-}]);
+// var myApp = angular.module('myApp', []);
+//
+//
+// myApp.controller('mainController', ['$scope', function($scope){
+//
+//
+//
+// }]);
