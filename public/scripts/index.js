@@ -25,14 +25,14 @@ var card = new BusinessCard();
 // scene.add( moonMesh );
 
 //Placeholder 2
-var moonGeometry = new THREE.SphereBufferGeometry( 300, 300, 300 );
+var moonGeometry = new THREE.BoxBufferGeometry( 300, 300, 300 );
 var moonTexture = new THREE.TextureLoader().load( "../assets/moonbackground.png" );
 // moonTexture.wrapS = THREE.RepeatWrapping;
 // moonTexture.wrapT = THREE.RepeatWrapping;
 // moonTexture.repeat.set( 5, 5 );
 var moonMaterial = new THREE.MeshBasicMaterial( { map: moonTexture, side: THREE.DoubleSide } );
 var moonSphere = new THREE.Mesh( moonGeometry, moonMaterial );
-moonSphere.position.y = -350;
+moonSphere.position.y = -225;
 moonSphere.rotation.z += Math.PI / 2;
 scene.add( moonSphere );
 
