@@ -10,7 +10,7 @@
 }
 
 body {
-  box-shadow: inset 200px 200px 200px #eeeeee;
+  margin: 0px;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
