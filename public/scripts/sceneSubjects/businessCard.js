@@ -1,7 +1,9 @@
 
-function BusinessCard( width, height, thickness){
+function BusinessCard(width, height, thickness){
+  var clickX = 0;   //Used for rotating the card
+
   this.type = 'BusinessCard';
-  this.geometry = new THREE.BoxGeometry( width, height, thickness );
+  this.geometry = new THREE.BoxGeometry(width, height, thickness);
   this.geometry.computeFaceNormals();
   this.frontFace = new FrontFace();
   this.backFace = new BackFace();
@@ -13,7 +15,7 @@ function BusinessCard( width, height, thickness){
     new THREE.MeshPhongMaterial({ map: this.frontFace.texture }),     //Front
     new THREE.MeshPhongMaterial({ map: this.backFace.texture })     //Back
   ];
-  this.object = new THREE.Mesh( this.geometry, this.materialArray );
+  this.object = new THREE.Mesh(this.geometry, this.materialArray);
   this.object.castShadow = true;
 
 
@@ -24,7 +26,7 @@ function BusinessCard( width, height, thickness){
     var fPromise2 = document.fonts.load('12px Roboto');
 
     //Once loads are done, draw the card faces
-    Promise.all( [fPromise1, fPromise2] ).then( () => {
+    Promise.all([fPromise1, fPromise2]).then(() => {
       this.frontFace.init();
       this.backFace.init();
     },
@@ -41,29 +43,82 @@ function BusinessCard( width, height, thickness){
   };//End update
 
 
-  this.interact = ( intersect, e ) => {
+  this.mouseDown = (e, intersect) => {
     var x = intersect.uv.x * this.backFace.canvas.getWidth();
     var y = intersect.uv.y * this.backFace.canvas.getHeight();
     var objFace = intersect.faceIndex;
-    if( [8, 9].indexOf(objFace) != -1 ){
+
+    // clickStrength = intersect.uv.x > .5 ? intersect.uv.x - .5 : -intersect.uv.x;
+    clickX = e.clientX;
+
+    if([8, 9].indexOf(objFace) != -1){
       //Front Face
-      this.frontFace.update();
-      // this.drawMouse(this.frontFace.context, x, y );  //Used for debug
-    } else if( [10, 11].indexOf(objFace) != -1 ){
+      // this.frontFace.update();
+      // this.drawMouse(this.frontFace.context, x, y);  //Used for debug
+      let cardRotate = this.rotate;
+      window.addEventListener('mousemove', cardRotate);
+      window.addEventListener('mouseup', function(){window.removeEventListener('mousemove', cardRotate); });
+      return;
+
+    } else if([10, 11].indexOf(objFace) != -1){
       //Back Face
-      this.backFace.buttons.forEach( (btn) => {
-        if( btn.checkIntersection( x, y ) ){
-          btn.update(e);
+      //Check for button intersects
+      this.backFace.buttons.forEach((btn) => {
+        if(btn.checkIntersection(x, y)){
+          btn.onClick();
+        } else {
+          btn.isMouseHovering = false;  //Reset value
+        }
+      });
+
+      this.backFace.update();
+      // this.drawMouse(this.backFace.context, x, y);  //Used for debug
+
+      let cardRotate = this.rotate;
+      window.addEventListener('mousemove', cardRotate);
+      window.addEventListener('mouseup', function(){window.removeEventListener('mousemove', cardRotate); });
+      return;
+
+    } else {
+      //Side Face
+    }
+  };//End interact
+
+
+  this.mouseOver = (e, intersect) => {
+    var x = intersect.uv.x * this.backFace.canvas.getWidth();
+    var y = intersect.uv.y * this.backFace.canvas.getHeight();
+    var objFace = intersect.faceIndex;
+    if([8, 9].indexOf(objFace) != -1){
+      //Front Face
+      // this.frontFace.update();
+      // this.drawMouse(this.frontFace, x, y);  //Used for debug
+      return;
+
+    } else if([10, 11].indexOf(objFace) != -1){
+      //Back Face
+
+      //Check for button intersects
+      this.backFace.buttons.forEach((btn) => {
+        if(btn.checkIntersection(x, y)){
+          btn.isMouseHovering = true;
         } else {
           btn.isMouseHovering = false;  //Reset value
         }
       });
       this.backFace.update();
-      // this.drawMouse(this.backFace.context, x, y );  //Used for debug
+      // this.drawMouse(this.backFace, x, y);  //Used for debug
     } else {
       //Side Face
     }
   };//End interact
+
+  this.rotate = (moveEvent) => {
+    var dx = moveEvent.clientX - clickX;
+    clickX = moveEvent.clientX;
+
+    this.object.rotation.y += Math.PI * (dx / (window.innerWidth * .5));
+  }//End rotate
 
 
   //CardFace Prototype
@@ -88,16 +143,16 @@ function BusinessCard( width, height, thickness){
   function FrontFace(){
     var texturePath = '../assets/papertexture.jpg';
 
-    CardFace.call( this);
+    CardFace.call(this);
 
     this.font = null;
     this.pattern = null;
-    this.texture = new THREE.CanvasTexture( this.canvas );
+    this.texture = new THREE.CanvasTexture(this.canvas);
     this.texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     this.init = () => {
       var textureImg = new ImagePromise(texturePath);
-      textureImg.then( (img) => {
+      textureImg.then((img) => {
         this.pattern = this.context.createPattern(img, 'repeat'); // Create a pattern with this image, and set it to "repeat".
         this.update();
       });
@@ -118,7 +173,7 @@ function BusinessCard( width, height, thickness){
 
       //To fit, fontSize calculations
       this.context.font = `${fontSize}px ${fontName}`;
-      while( this.context.measureText(cardText).width > this.canvas.getWidth() * .6 ){
+      while(this.context.measureText(cardText).width > this.canvas.getWidth() * .6){
         fontSize -= 5;
         this.context.font = `${fontSize}px ${fontName}`;
       }
@@ -127,7 +182,7 @@ function BusinessCard( width, height, thickness){
       // this.context.textBaseline = 'middle';
       this.context.fillStyle = "black";
       this.context.globalAlpha = 0.80;
-      this.context.fillText(cardText, this.canvas.getWidth() / 2, this.canvas.getHeight() / 2 );
+      this.context.fillText(cardText, this.canvas.getWidth() / 2, this.canvas.getHeight() / 2);
 
       //Subtext
       var subText = 'Software Developer';
@@ -135,11 +190,11 @@ function BusinessCard( width, height, thickness){
       var subFontSize = fontSize * .5;
 
       this.context.font = `${subFontSize}px ${subFontName}`;
-      while( this.context.measureText(subText).width > this.canvas.getWidth() * .8 ){
+      while(this.context.measureText(subText).width > this.canvas.getWidth() * .8){
         subFontSize -= 5;
         this.context.font = `${subFontSize}px ${subFontName}`;
       }
-      this.context.fillText(subText, this.canvas.getWidth() / 2, ( this.canvas.getHeight() / 2 + fontSize ) );
+      this.context.fillText(subText, this.canvas.getWidth() / 2, (this.canvas.getHeight() / 2 + fontSize));
 
       this.context.globalAlpha = 1;
       this.texture.needsUpdate = true;
@@ -149,35 +204,34 @@ function BusinessCard( width, height, thickness){
 
   function BackFace(){
     var texturePath = '../assets/papertexture.jpg';
-    // var texturePath = '../assets/moonbackground.png';
 
-    CardFace.call( this);
+    CardFace.call(this);
 
-    this.texture = new THREE.CanvasTexture( this.canvas );
+    this.texture = new THREE.CanvasTexture(this.canvas);
     this.texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     this.buttons = [
-      new CardButton( 'GitHub', '../assets/github.svg', 'https://github.com/HenryHall' ),
-      new CardButton( 'LinkedIn', '../assets/linkedin.png', 'https://www.linkedin.com/in/henry-hall-ba2168122/' ),
-      new CardButton( 'CodePen', '../assets/codepen.png', 'https://codepen.io/HenryPrime/' )
+      new CardButton('GitHub', '../assets/github.svg', 'https://github.com/HenryHall'),
+      new CardButton('LinkedIn', '../assets/linkedin.png', 'https://www.linkedin.com/in/henry-hall-ba2168122/'),
+      new CardButton('CodePen', '../assets/codepen.png', 'https://codepen.io/HenryPrime/')
     ];
 
     this.init = () => {
       //Prepare canvas images
       var promises = [];
       var textureImg = new ImagePromise(texturePath);
-      textureImg.then( (img) => {
+      textureImg.then((img) => {
         this.pattern = this.context.createPattern(img, 'repeat'); // Create a pattern with this image, and set it to "repeat".
       });
 
-      promises.push( textureImg );
-      this.buttons.forEach( (btn) => {
-        let p = new ImagePromise( btn.src );
-        btn.img = p.then( (img) => {btn.img = img} );
-        promises.push( p );
+      promises.push(textureImg);
+      this.buttons.forEach((btn) => {
+        let p = new ImagePromise(btn.src);
+        btn.img = p.then((img) => {btn.img = img});
+        promises.push(p);
       });
 
-      Promise.all( promises ).then( (values) => {
+      Promise.all(promises).then((values) => {
         this.update();
       });
     }//End init
@@ -199,20 +253,20 @@ function BusinessCard( width, height, thickness){
       //Button Layout Calculations
       var logoSquare, shift, dx, dy;
       var isWider = this.canvas.getWidth() > this.canvas.getHeight() ? true : false;
-      if( isWider ){
-        logoSquare = this.canvas.getWidth() / ( this.buttons.length + 1 );
-        shift = logoSquare * ( 1 / ( this.buttons.length + 1 ) );
+      if(isWider){
+        logoSquare = this.canvas.getWidth() / (this.buttons.length + 1);
+        shift = logoSquare * (1 / (this.buttons.length + 1));
         dx = shift;
         dy = (this.canvas.getHeight() / 2) - (logoSquare / 2);
       } else {
-        logoSquare = this.canvas.getHeight() * ( 1 / ( this.buttons.length + 1 ) );
-        shift = logoSquare * ( 1 / ( this.buttons.length + 1 ) );
+        logoSquare = this.canvas.getHeight() * (1 / (this.buttons.length + 1));
+        shift = logoSquare * (1 / (this.buttons.length + 1));
         dx = (this.canvas.getWidth() / 2) -  (logoSquare / 2);
         dy = shift;
       }
 
       //Update each button
-      this.buttons.forEach( (btn) => {
+      this.buttons.forEach((btn) => {
         btn.x = dx;
         btn.y = dy;
         btn.radius = logoSquare / 2;
@@ -220,19 +274,19 @@ function BusinessCard( width, height, thickness){
         let radiusDiff = btn.radius * .05;  //Used for click and hover animation calculations
 
         //Draw hover animation
-        if( btn.isMouseHovering ){
+        if(btn.isMouseHovering){
           // console.log(`Drawing hover animation for ${btn.name}`);   //Debug
 
           //Dashed outline
           let drawDash = true;
           let stepRadians = Math.PI * 2 / 50;   //50 Dashes per button
-          for( let i = 0; i <= Math.PI * 2; i += stepRadians ){
-            if( drawDash ){
+          for(let i = 0; i <= Math.PI * 2; i += stepRadians){
+            if(drawDash){
               this.context.globalAlpha = 0.80;
               this.context.lineWidth = 15;
               this.context.strokeStyle = 'grey';
               this.context.beginPath();
-              this.context.arc( btn.x + btn.radius, btn.y + btn.radius, btn.radius + radiusDiff, i, i + stepRadians );
+              this.context.arc(btn.x + btn.radius, btn.y + btn.radius, btn.radius + radiusDiff, i, i + stepRadians);
               this.context.stroke();
               this.context.globalAlpha = 1;
             }
@@ -248,21 +302,21 @@ function BusinessCard( width, height, thickness){
 
 
         //Draw animation based on clicking status
-        if( btn.isMouseDown && mouse.isDown ){
+        if(btn.isMouseDown){
           //Mouse is down on this button
           this.context.globalAlpha = .8;
-          this.context.drawImage( btn.img, dx - radiusDiff/2, dy - radiusDiff/2, logoSquare + radiusDiff, logoSquare + radiusDiff );
+          this.context.drawImage(btn.img, dx - radiusDiff/2, dy - radiusDiff/2, logoSquare + radiusDiff, logoSquare + radiusDiff);
         } else {
           //The mouse is no longer down on this button
           btn.isMouseDown = false;  //Reset value
           this.context.globalAlpha = .8;
-          this.context.drawImage( btn.img, dx, dy, logoSquare, logoSquare );
+          this.context.drawImage(btn.img, dx, dy, logoSquare, logoSquare);
         }
         this.context.globalAlpha = 1;
 
 
         //Update next button positions
-        if( isWider ){
+        if(isWider){
           dx = dx + logoSquare + shift;
         } else {
           dy = dy + logoSquare + shift;
@@ -286,13 +340,13 @@ function BusinessCard( width, height, thickness){
       this.url = url;
       this.img = null;
 
-      this.checkIntersection = ( x, y ) => {
+      this.checkIntersection = (x, y) => {
         //Check if this button is being intersected by the mouse
         try {
           let dx = this.x + this.radius - x;
           let dy = this.y + this.radius - y;
-          let distance = Math.sqrt( dx * dx + dy * dy );
-          if ( distance < this.radius ) {
+          let distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < this.radius) {
             return true;
           } else {
             return false;
@@ -302,49 +356,42 @@ function BusinessCard( width, height, thickness){
         }
       };
 
-      this.update = ( event ) => {
-        //The mouse is over this button
+      this.onClick = () => {
+        this.isMouseDown = true;
 
-        this.isMouseHovering = true;
-        // console.log(`${this.name} is being hovered`);   //Debug
-        try {
-          switch (event.type) {
-            case 'mouseup':
-              break;
+        var btnMouseUp = function(btn){
+          window.removeEventListener('mouseup', btnMouseUp);
 
-            case 'mousedown':
-              this.isMouseDown = true;
-              console.log("Clicked: ", this.url);
-              //open url
-              window.open(this.url);
-              break;
+          //open url
+          window.open(btn.url);
 
-            default:
-              // console.log("Unknown Event Type: ", e.type);
-          }
-        } catch (err) {
-          console.log(err);
-          throw new Error( "Event object was not present." );
+          btn.isMouseDown = false;
         }
+        var button = this;
+        window.addEventListener('mouseup', function(){ btnMouseUp(button); });
+
       }//End interact
     }//End CardButton
   }//End BackFaceCanvas
 
 
-  function ImagePromise( path ){
-    return new Promise( ( resolve, reject ) => {
+  function ImagePromise(path){
+    return new Promise((resolve, reject) => {
       let img = new Image();
       img.onload = () => resolve(img);
-      img.onerror = () => reject( new Error( 'Failed to load image: ', path ) );
+      img.onerror = () => reject(new Error('Failed to load image: ', path));
       img.src = path;
     });
   }
 
 
   //Debug
-  this.drawMouse = ( faceContext, x, y ) => {
+  this.drawMouse = (face, x, y) => {
+    var faceContext = face.context;
     var mx = x;
     var my = faceContext.canvas.getHeight() - y;
+
+    face.update();
 
     faceContext.beginPath();
     faceContext.arc(mx, my, 3, 0, 2 * Math.PI);
@@ -353,6 +400,8 @@ function BusinessCard( width, height, thickness){
     faceContext.lineWidth = 1;
     faceContext.strokeStyle = '#ff0000';
     faceContext.stroke();
+
+    face.texture.needsUpdate = true;
   }//End drawMouse
   //End Debug
 }//End BusinessCard
