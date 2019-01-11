@@ -359,17 +359,16 @@ function BusinessCard(width, height, thickness){
       this.onClick = () => {
         this.isMouseDown = true;
 
-        var btnMouseUp = function(btn){
+        var btnMouseUp = () => {
           window.removeEventListener('mouseup', btnMouseUp);
 
           //open url
-          window.open(btn.url);
+          window.open(this.url);
 
-          btn.isMouseDown = false;
+          this.isMouseDown = false;
         }
-        var button = this;
-        window.addEventListener('mouseup', function(){ btnMouseUp(button); });
 
+        window.addEventListener('mouseup', btnMouseUp);
       }//End interact
     }//End CardButton
   }//End BackFaceCanvas
