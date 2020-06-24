@@ -1,0 +1,39 @@
+{
+    "env": {
+        "browser": true,
+        "node": true,
+        "es2020": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": 11,
+        "sourceType": "script",
+        "ecmaFeatures": {
+            "jsx": false,
+            "experimentalObjectRestSpread": false
+        }
+    },
+    "rules": {
+        "indent": [
+            "error",
+            4
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "semi": [
+            "error",
+            "always"
+        ]
+    },
+    "globals": {
+        "THREE": "readonly",
+        "BusinessCard": "writable",
+        "Moon": "writable"
+    }
+}
