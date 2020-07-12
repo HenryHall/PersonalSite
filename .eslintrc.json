@@ -7,7 +7,7 @@
     "extends": "eslint:recommended",
     "parserOptions": {
         "ecmaVersion": 11,
-        "sourceType": "script",
+        "sourceType": "module",
         "ecmaFeatures": {
             "jsx": false,
             "experimentalObjectRestSpread": false
@@ -16,7 +16,7 @@
     "rules": {
         "indent": [
             "error",
-            4
+            "tab"
         ],
         "linebreak-style": [
             "error",
@@ -30,10 +30,5 @@
             "error",
             "always"
         ]
-    },
-    "globals": {
-        "THREE": "readonly",
-        "BusinessCard": "writable",
-        "Moon": "writable"
     }
 }
