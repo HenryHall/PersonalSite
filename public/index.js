@@ -4,6 +4,8 @@ import './index.css';
 import SceneManager from './scripts/SceneManager.js';
 
 
+console.log('Hello, I\'d love to work for you!');
+
 const sceneCanvas = document.getElementById('sceneCanvas');
 sceneCanvas.height = window.innerHeight;
 sceneCanvas.width = window.innerWidth;
@@ -14,9 +16,9 @@ run();
 
 function registerListeners() {
 	window.addEventListener('resize', onResize);
-	sceneCanvas.addEventListener('mouseup', sceneManager.onMouseUp.bind(sceneManager));
-	sceneCanvas.addEventListener('mousedown', sceneManager.onMouseDown.bind(sceneManager));
-	sceneCanvas.addEventListener('mousemove', sceneManager.onMouseMove.bind(sceneManager));
+	sceneCanvas.addEventListener('pointerup', sceneManager.onMouseUp.bind(sceneManager));
+	sceneCanvas.addEventListener('pointerdown', sceneManager.onMouseDown.bind(sceneManager));
+	sceneCanvas.addEventListener('pointermove', sceneManager.onMouseMove.bind(sceneManager));
 }
 
 
